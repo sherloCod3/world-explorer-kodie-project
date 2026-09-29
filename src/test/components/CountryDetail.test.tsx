@@ -13,6 +13,25 @@ import { describe, it, expect, vi } from 'vitest';
 import { CountryDetail } from '../../components/CountryDetail';
 import type { Country } from '../../types/country';
 
+// Os serviços auxiliares são simulados: nenhum teste chama a rede real.
+vi.mock('../../utils/conditions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/conditions')>();
+  return {
+    ...actual,
+    // Requisição pendente: o cartão fica em carregamento, os testes são
+    // síncronos e nenhum estado é atualizado fora de act().
+    fetchCountryConditions: vi.fn(() => new Promise(() => {})),
+  };
+});
+
+vi.mock('../../utils/exchange', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/exchange')>();
+  return {
+    ...actual,
+    fetchExchangeRates: vi.fn(() => new Promise(() => {})),
+  };
+});
+
 const brazil: Country = {
   name: {
     common: 'Brasil',
@@ -246,5 +265,30 @@ describe('CountryDetail - interações', () => {
     renderDetail({ country: { ...brazil, borders: [] }, neighbors: [] });
 
     expect(screen.queryByText('Países Vizinhos')).not.toBeInTheDocument();
+  });
+});
+
+describe('CountryDetail - seção Para viajar', () => {
+  it('exibiu os cartões de clima e de câmbio para um país com moeda estrangeira', async () => {
+    renderDetail({
+      country: {
+        ...brazil,
+        currencies: { EUR: { name: 'Euro', symbol: '€' } },
+      },
+    });
+
+    expect(await screen.findByText('Para viajar')).toBeInTheDocument();
+    expect(screen.getByText('Carregando clima…')).toBeInTheDocument();
+    expect(screen.getByText('Carregando cotação…')).toBeInTheDocument();
+  });
+
+  it('ocultou o cartão de câmbio para países que usam o próprio real', async () => {
+    renderDetail(); // Brasil, moeda BRL
+
+    expect(await screen.findByText('Para viajar')).toBeInTheDocument();
+    expect(screen.getByText('Carregando clima…')).toBeInTheDocument();
+    // Sem cartão de câmbio: nada de cotação nem de conversão.
+    expect(screen.queryByText('Carregando cotação…')).not.toBeInTheDocument();
+    expect(screen.queryByText(/1 BRL/)).not.toBeInTheDocument();
   });
 });

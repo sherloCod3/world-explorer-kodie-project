@@ -48,6 +48,8 @@ export interface Country {
     nativeName?: string;
   };
   cca3: string;
+  /** Código ISO 3166-1 alfa-2 ("FR"). Usado para conferir resultados do geocoding. */
+  cca2?: string;
   ccn3?: string;
   region: string;
   subregion?: string;

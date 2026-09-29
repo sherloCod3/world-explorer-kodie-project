@@ -22,7 +22,7 @@ const BASE_URL = 'https://countries.dev';
 
 /** Campos para manter o payload mínimo, cobrindo tudo o que a interface exibe. */
 const FIELDS =
-  'name,nativeName,alpha3Code,numericCode,region,subregion,population,area,flags,capital,languages,currencies,latlng,borders,independent,timezones,flag';
+  'name,nativeName,alpha2Code,alpha3Code,numericCode,region,subregion,population,area,flags,capital,languages,currencies,latlng,borders,independent,timezones,flag';
 
 /** Tempo máximo de espera pela resposta da API (evita loading infinito). */
 export const REQUEST_TIMEOUT_MS = 15000;
@@ -193,6 +193,7 @@ function mapCountry(raw: Record<string, unknown>): Country {
       nativeName: asText(raw.nativeName),
     },
     cca3: asText(raw.alpha3Code) ?? '',
+    cca2: asText(raw.alpha2Code),
     ccn3: asText(raw.numericCode),
     region: normalizeRegion(raw.region),
     subregion: asText(raw.subregion),

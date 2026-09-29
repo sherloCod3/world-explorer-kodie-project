@@ -36,6 +36,7 @@ Aplicação web responsiva que:
 - Oferece filtro por região e múltiplas opções de ordenação
 - Exibe detalhes completos em modal interativo
 - Permite salvar favoritos com persistência local
+- Exibe clima atual e conversão de moeda no modal (seção "Para viajar")
 - Suporta modo claro/escuro com preferência do sistema
 
 ---
@@ -63,6 +64,19 @@ Aplicação web responsiva que:
 
 **Campos não fornecidos pela API:** `continents`, `unMember`, `landlocked`, `startOfWeek` e `coatOfArms` não existem na resposta da Countries.dev. Esses campos não recebem valores fixos — a interface exibe apenas os dados recebidos.
 
+### APIs Auxiliares (seção "Para viajar" — dados em tempo real)
+
+| Serviço | Uso | Autenticação | CORS |
+|---------|-----|--------------|------|
+| Open-Meteo Geocoding (`geocoding-api.open-meteo.com/v1/search`) | Localiza a capital por nome (com `countryCode` para confirmar); usa o centro do país (`latlng`) como fallback rotulado | Não requer key | `*` |
+| Open-Meteo Forecast (`api.open-meteo.com/v1/forecast`) | Clima atual: temperatura, condição (traduzida para PT-BR no app), umidade, vento, horário local, nascer/pôr do sol | Não requer key | `*` |
+| Open ER-API (`open.er-api.com/v6/latest/BRL`) | Cotação BRL → moeda local (base BRL pedida de uma vez; data de atualização carimbada no cartão) | Não requer key | `*` |
+
+- Escolhidos pelo mesmo padrão da API principal: gratuitos, sem key e com CORS `*`.
+- Cada cartão falha de forma isolada: erro de rede ou resposta inválida exibe "indisponível" sem quebrar o modal nem a lista.
+- Países sem moeda (ex.: Antártida) nem exibem o cartão de câmbio; países sem `latlng` exibem o cartão de clima como indisponível.
+- Resposta do câmbio reutilizada em memória (1 chamada por sessão); clima buscado sob demanda por modal (dados mudam a cada hora).
+
 ---
 
 ## ✨ Funcionalidades
@@ -78,6 +92,12 @@ Aplicação web responsiva que:
 - Modal de detalhes com informações completas
 - Navegação entre países vizinhos no modal
 - Formatação de números no padrão brasileiro
+
+### Para Viajar (dados auxiliares em tempo real)
+- Clima atual da capital: temperatura, condição em português, umidade, vento, horário local, nascer e pôr do sol (via Open-Meteo, geocodificação com confirmação por código do país)
+- Conversor de moedas: mostra a cotação (1 BRL ≈ X na moeda local) com carimbo da data de atualização e campo para converter valores em reais (via Open ER-API)
+- Rótulo de honestidade exibido quando os dados não são da capital exata ("Capital não localizada — dados do centro do país" ou "Centro do país")
+- Falhas nesses serviços não quebram o modal: cada cartão exibe "indisponível" de forma isolada
 
 ### Favoritos
 - Adicionar/remover países dos favoritos
@@ -110,26 +130,42 @@ src/
 │   ├── FilterBar.tsx          # Filtros de região e ordenação
 │   ├── CountryCard.tsx        # Card individual de país
 │   ├── CountryGrid.tsx        # Grid responsivo de cards
-│   ├── CountryDetail.tsx      # Modal de detalhes do país
+│   ├── CountryDetail.tsx      # Modal de detalhes + seção "Para viajar"
+│   ├── ConditionsCard.tsx     # Clima atual da capital (Open-Meteo)
+│   ├── ExchangeCard.tsx       # Cotação BRL e conversor (Open ER-API)
 │   ├── LoadingState.tsx       # Estado de carregamento
 │   ├── ErrorState.tsx         # Estado de erro com retry
 │   └── Footer.tsx             # Rodapé com créditos
 │
 ├── hooks/                     # Hooks customizados (lógica de negócio)
 │   ├── useCountries.ts        # Busca, filtro e ordenação de dados
+│   ├── useConditions.ts       # Orquestra geocode → forecast do clima
+│   ├── useExchangeRate.ts     # Cotação BRL → moeda local
 │   ├── useFavorites.ts        # Gerenciamento de favoritos + localStorage
 │   └── useTheme.ts            # Gerenciamento de tema claro/escuro
 │
 ├── types/                     # Tipos TypeScript
-│   └── country.ts             # Contrato de dados usado pela aplicação
+│   ├── country.ts             # Contrato de dados usado pela aplicação
+│   └── travel.ts              # Tipos de clima e câmbio
 │
 ├── utils/                     # Utilitários
 │   ├── api.ts                 # Comunicação com a API + mapeamento dos dados
+│   ├── conditions.ts          # Cliente Open-Meteo + tradução WMO→PT-BR
+│   ├── exchange.ts            # Cliente Open ER-API (cache por sessão)
 │   └── regions.ts             # Regiões suportadas pelo filtro (fonte única)
 │
 └── test/                      # Testes automatizados
     ├── setup.ts               # Configuração do ambiente de teste
     ├── App.test.tsx           # Teste de integração da aplicação
+    ├── components/            # Testes de componentes (9 arquivos)
+    │   ├── ConditionsCard.test.tsx  # Clima, horário local, rótulo de fallback
+    │   ├── ExchangeCard.test.tsx    # Cotação, conversor, carimbo de atualização
+    ├── hooks/                 # Testes de hooks (4 arquivos)
+    │   ├── useConditions.test.ts    # Capital, fallback, indisponível
+    │   ├── useExchangeRate.test.ts  # Estados, moeda BRL, abort
+    └── utils/                 # Testes de clientes de API (3 arquivos)
+        ├── conditions.test.ts # Geocode, forecast, tradução WMO
+        └── exchange.test.ts   # Sucesso, cache por sessão, falhas
     ├── hooks/                 # Testes dos hooks
     ├── components/            # Testes dos componentes
     └── utils/                 # Testes das funções utilitárias
@@ -214,7 +250,7 @@ Testes organizados por camada, cobrindo UI/UX e lógica de negócio:
 ### Executar Testes
 
 ```bash
-# Executar todos os testes (13 arquivos / 105 testes)
+# Executar todos os testes (19 arquivos / 143 testes)
 npm test
 
 # Executar em modo watch
@@ -312,7 +348,7 @@ Nenhuma variável de ambiente necessária. A API é pública, sem autenticação
 ```bash
 npm run lint       # 0 erros e 0 avisos
 npm run typecheck  # sem erros de tipo
-npm test           # 13 arquivos / 105 testes
+npm test           # 19 arquivos / 143 testes
 npm run build      # gera dist/
 
 # Confirmar que o bundle usa a API atual
@@ -380,6 +416,19 @@ Após o deploy, validações aplicadas:
 - Corrigido o README: a linha de endpoints agora informa que apenas `/countries` é chamado em produção (busca e detalhes operam sobre os dados carregados) e a lista de regiões do filtro inclui `Antarctic`.
 - Publicada nova versão em produção: o build remoto confirmou a árvore de dependências podada, e o bundle verificado segue sem menções à API descontinuada.
 - Validado o fluxo completo com lint, typecheck, 105 testes, build e `npm audit` (0 vulnerabilidades).
+
+---
+
+### 29/09/2026 — Seção "Para viajar": clima da capital e conversor de moedas
+
+- Adicionada seção "Para viajar" no modal de detalhes, com clima atual da capital e cotação BRL → moeda local com conversor de valores.
+- Escolhidos serviços gratuitos, sem key e com CORS `*`, no mesmo padrão da API principal: Open-Meteo (geocodificação + forecast) e Open ER-API (câmbio com base BRL).
+- Implementada geocodificação da capital com confirmação por código do país (`cca2`); quando a capital não é localizada, exibido fallback rotulado para o centro do país.
+- Traduzidos os códigos de condição WMO para português no app, com fonte citada no comentário do mapa.
+- Garantida falha isolada por cartão ("Clima indisponível"/"Cotação indisponível") sem quebrar o modal; países sem moeda nem exibem o cartão de câmbio.
+- Adicionados `cca2` ao contrato de dados (campo `alpha2Code` da API) e resposta do câmbio reutilizada em memória (1 chamada por sessão).
+- Adicionados 38 testes (clientes, hooks, cartões e integração): 105 → 143 testes, todos aprovados.
+- Validado o fluxo completo com lint (0/0), typecheck, testes, build, `npm audit` (0 vulnerabilidades) e verificação ao vivo contra os 3 serviços reais.
 
 ---
 

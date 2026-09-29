@@ -22,6 +22,24 @@ vi.mock('../utils/api', () => ({
   fetchAllCountries: vi.fn(),
 }));
 
+// Os serviços auxiliares são simulados: nenhum teste chama a rede real.
+vi.mock('../utils/conditions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/conditions')>();
+  return {
+    ...actual,
+    // Requisição pendente: o cartão fica em carregamento sem tocar na rede.
+    fetchCountryConditions: vi.fn(() => new Promise(() => {})),
+  };
+});
+
+vi.mock('../utils/exchange', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/exchange')>();
+  return {
+    ...actual,
+    fetchExchangeRates: vi.fn(() => new Promise(() => {})),
+  };
+});
+
 const mockFetchAllCountries = vi.mocked(fetchAllCountries);
 
 /** Monta um país com os campos obrigatórios do tipo Country. */
@@ -115,6 +133,8 @@ describe('App', () => {
       'aria-label',
       'Detalhes de Brasil',
     );
+    // A seção auxiliar é exibida com os cartões de clima e câmbio.
+    expect(screen.getByText('Para viajar')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Argentina' }));
 

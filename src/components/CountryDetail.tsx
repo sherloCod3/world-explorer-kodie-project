@@ -28,8 +28,11 @@ import {
   Coins,
   Building2,
   Compass,
+  Plane,
 } from 'lucide-react';
 import type { Country } from '../types/country';
+import { ConditionsCard } from './ConditionsCard';
+import { ExchangeCard } from './ExchangeCard';
 
 interface CountryDetailProps {
   country: Country;
@@ -94,6 +97,13 @@ export function CountryDetail({
 
   const languages = Object.values(country.languages);
   const currencies = Object.values(country.currencies);
+
+  /**
+   * Primeira moeda conversível do país: a base da cotação é BRL, então o
+   * cartão de câmbio não é exibido para países que usam o próprio real.
+   */
+  const [currencyCode] =
+    Object.entries(country.currencies).find(([code]) => code !== 'BRL') ?? [];
 
   return (
     <div
@@ -238,6 +248,27 @@ export function CountryDetail({
               </div>
             </div>
           )}
+
+          {/* Para viajar: clima, horário local e câmbio (serviços externos). */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Plane className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                Para viajar
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* key por país: navegar aos vizinhos remonta o cartão. */}
+              <ConditionsCard country={country} key={country.cca3} />
+              {currencyCode && (
+                <ExchangeCard
+                  code={currencyCode}
+                  currency={country.currencies[currencyCode]}
+                  key={currencyCode}
+                />
+              )}
+            </div>
+          </div>
 
           {/* Países vizinhos */}
           {neighbors.length > 0 && (

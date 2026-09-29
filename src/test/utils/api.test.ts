@@ -163,6 +163,7 @@ describe('API - contrato de mapeamento do countries.dev', () => {
     expect(country.name.common).toBe('Bolivia');
     expect(country.name.nativeName).toBe('Bolivia');
     expect(country.cca3).toBe('BOL');
+    expect(country.cca2).toBe('BO');
     expect(country.ccn3).toBe('068');
     expect(country.region).toBe('Americas');
     expect(country.subregion).toBe('South America');
