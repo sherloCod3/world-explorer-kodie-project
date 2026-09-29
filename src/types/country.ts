@@ -1,6 +1,6 @@
 /**
- * Tipos TypeScript para os dados da API REST Countries.
- * Definidos conforme a estrutura de resposta da API v3.
+ * Tipos TypeScript para os dados da API de países (https://countries.dev).
+ * Definidos conforme a estrutura de resposta que o endpoint /countries retorna.
  */
 
 /** Idioma falado no país */
