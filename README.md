@@ -1,6 +1,6 @@
 # 🌍 World Explorer
 
-> Aplicação React para explorar dados de países ao redor do mundo, consumindo a API REST Countries.
+> Aplicação React para explorar dados de países ao redor do mundo, consumindo a API Countries.dev.
 
 ---
 
@@ -16,6 +16,7 @@
 - [Testes](#-testes)
 - [Decisões Técnicas](#-decisões-técnicas)
 - [Deploy](#-deploy)
+- [Registro de Alterações](#-registro-de-alterações)
 
 ---
 
@@ -43,20 +44,24 @@ Aplicação web responsiva que:
 
 **Countries.dev API** — https://countries.dev
 
-|| Critério | Avaliação |
+| Critério | Avaliação |
 |----------|-----------|
-|| Autenticação | Não requer API key |
-|| Dados disponíveis | Nome, bandeira, capital, região, população, área, idiomas, moedas, fronteiras, coordenadas |
-|| Rate limit | Limite generoso, uso razoável |
-|| Formato | JSON |
-|| CORS | Habilitado (`Access-Control-Allow-Origin: *`) |
+| Autenticação | Não requer API key |
+| Dados disponíveis | Nome, bandeira, capital, região, população, área, idiomas, moedas, fronteiras, coordenadas |
+| Endpoints usados | `/countries` (lista completa), `/name/{nome}` e `/alpha/{código}` |
+| Volume retornado | 250 países em uma única chamada, sem paginação |
+| Cache | Cabeçalhos `Cache-Control` com CDN (`s-maxage`), reduzindo chamadas repetidas |
+| Formato | JSON |
+| CORS | Habilitado (`Access-Control-Allow-Origin: *`) |
 
 **Por que esta API:**
 - Gratuita e sem configuração complexa
-- Sem necessidade de API key
+- Sem necessidade de API key (evita guardar segredo no deploy)
 - CORS habilitado para chamadas diretas do navegador
-- Substituta direta do antigo REST Countries v3.1 (agora descontinuado)
+- Substituta do antigo REST Countries v3.1 (agora descontinuado)
 - Dados bem estruturados e resposta rápida
+
+**Campos não fornecidos pela API:** `continents`, `unMember`, `landlocked`, `startOfWeek` e `coatOfArms` não existem na resposta da Countries.dev. Esses campos não recebem valores fixos — a interface exibe apenas os dados recebidos.
 
 ---
 
@@ -116,13 +121,15 @@ src/
 │   └── useTheme.ts            # Gerenciamento de tema claro/escuro
 │
 ├── types/                     # Tipos TypeScript
-│   └── country.ts             # Interfaces da API REST Countries
+│   └── country.ts             # Contrato de dados usado pela aplicação
 │
 ├── utils/                     # Utilitários
-│   └── api.ts                 # Funções de comunicação com a API
+│   ├── api.ts                 # Comunicação com a API + mapeamento dos dados
+│   └── regions.ts             # Regiões suportadas pelo filtro (fonte única)
 │
 └── test/                      # Testes automatizados
     ├── setup.ts               # Configuração do ambiente de teste
+    ├── App.test.tsx           # Teste de integração da aplicação
     ├── hooks/                 # Testes dos hooks
     ├── components/            # Testes dos componentes
     └── utils/                 # Testes das funções utilitárias
@@ -146,11 +153,12 @@ src/
 |-----------|--------|--------|
 | React | 18.2 | Biblioteca de UI |
 | Vite | 6.x | Build tool e dev server |
-| TypeScript | 5.7 | Type safety |
+| TypeScript | 5.9 | Type safety |
 | Tailwind CSS | 4.x | Utility-first CSS |
 | Lucide React | 0.294 | Ícones |
-| Vitest | Latest | Framework de testes |
-| Testing Library | Latest | Testes de componentes |
+| Vitest | 5.x | Framework de testes |
+| Testing Library | 16.x | Testes de componentes e hooks |
+| ESLint | 10.x | Padrão de código e validação estática |
 
 ---
 
@@ -160,14 +168,23 @@ src/
 # Instalar dependências
 npm install
 
-# Executar em desenvolvimento
+# Executar em desenvolvimento (http://localhost:3000)
 npm run dev
 
 # Build para produção
 npm run build
 
 # Executar testes
-npx vitest run
+npm test
+
+# Executar testes em modo watch
+npx vitest
+
+# Validar padrão de código (0 erros e 0 avisos)
+npm run lint
+
+# Validar tipos TypeScript
+npm run typecheck
 ```
 
 ---
@@ -180,36 +197,71 @@ Testes organizados por camada, cobrindo UI/UX e lógica de negócio:
 
 | Tipo | Arquivo | Cobertura |
 |------|---------|-----------|
+| Integração | `App.test.tsx` | Carga, busca, favoritos, modal, estado de erro, tema |
+| Hook | `useCountries.test.ts` | Carga, sucesso, erro, busca, região, ordenação, recarga |
 | Hook | `useFavorites.test.ts` | Adicionar, remover, persistir, validar limite, tratar dados corrompidos |
 | Hook | `useTheme.test.ts` | Toggle, persistência, aplicação de classe DOM |
 | Componente | `Header.test.tsx` | Renderização, busca, favoritos, tema, acessibilidade |
 | Componente | `CountryCard.test.tsx` | Dados exibidos, clique, favorito, bandeira |
-| Componente | `FilterBar.test.tsx` | Selects, callbacks, contador, singular/plural |
+| Componente | `CountryDetail.test.tsx` | Dados do modal, campos ausentes, área não informada, foco, ESC, vizinhos |
 | Componente | `CountryGrid.test.tsx` | Lista, estado vazio, view favoritos |
-| Utilitário | `api.test.ts` | Sucesso, erro, 404, mock do fetch |
+| Componente | `FilterBar.test.tsx` | Selects, callbacks, contador, singular/plural |
+| Componente | `LoadingState.test.tsx` | Mensagem padrão e mensagem personalizada |
+| Componente | `ErrorState.test.tsx` | Mensagem de erro e ação de tentar novamente |
+| Componente | `Footer.test.tsx` | Créditos, link da API e segurança do link externo |
+| Utilitário | `api.test.ts` | Contrato de mapeamento, falhas de comunicação, tempo limite, 404 |
 
 ### Executar Testes
 
 ```bash
-# Executar todos os testes
-npx vitest run
+# Executar todos os testes (13 arquivos / 105 testes)
+npm test
 
 # Executar em modo watch
 npx vitest
 
-# Executar com cobertura (se configurado)
-npx vitest run --coverage
+# Validar padrão de código (0 erros e 0 avisos)
+npm run lint
+
+# Validar tipos TypeScript
+npm run typecheck
 ```
+
+### Validações Aplicadas
+
+- Mapeamento da API validado com amostra real da resposta (campos, listas e campos ausentes).
+- Respostas inválidas validadas: corpo sem JSON, lista com objetos vazios e status HTTP de erro.
+- Tempo limite validado com relógio simulado.
+- Comportamentos do modal validados: ESC, clique fora, foco inicial e bloqueio do scroll.
+- Integração validada: busca, favoritos, modal, navegação entre vizinhos e estado de erro com recarga.
 
 ---
 
 ## 📐 Decisões Técnicas
 
-### Por que REST Countries e não OMDB/TMDB?
+### Por que Countries.dev e não OMDB/TMDB?
 - Não requer API key (simplifica desenvolvimento e deploy)
 - Dados estruturados e ricos para demonstrar filtros e interações
-- Resposta rápida sem rate limiting
-- Substituta direta do antigo REST Countries v3.1 (agora descontinuado)
+- Chamadas diretas do navegador, sem proxy e sem segredo no deploy
+- CORS habilitado, o que evita erro de origem no deploy
+- Substituta do REST Countries v3.1 (descontinuado)
+
+### Por que não preencher campos ausentes com valores fixos?
+- A API não fornece `unMember`, `landlocked` e `continents`
+- Valores fixos exibiam informação incorreta (todos os países apareciam como "Não")
+- Padrão adotado: campos ausentes ficam indefinidos e a interface não os renderiza
+- Trade-off: a tela de detalhes mostra menos campos, porém sempre corretos
+
+### Por que normalizar as regiões na camada de API?
+- A API retorna `Polar` e `Antarctic Ocean`, fora do conjunto exibido no filtro
+- A normalização converte ambos para `Antarctic`
+- Padrão adotado: `utils/regions.ts` é a fonte única das regiões
+- Resultado validado por teste: toda região retornada é selecionável no filtro
+
+### Por que limitar o tempo da requisição?
+- Uma resposta lenta deixaria o usuário no carregamento indefinidamente
+- Foi aplicado `AbortController` com limite de 15 segundos
+- Ao exceder, a aplicação exibe mensagem específica e libera o botão de tentar novamente
 
 ### Por que localStorage para favoritos?
 - Persistência entre sessões sem backend
@@ -253,7 +305,25 @@ Gerado em `dist/` — arquivos estáticos prontos para qualquer hosting:
 - AWS S3 + CloudFront
 
 ### Variáveis de Ambiente
-Nenhuma variável de ambiente necessária. A API é pública e acessada diretamente pelo browser.
+Nenhuma variável de ambiente necessária. A API é pública, sem autenticação, e é acessada diretamente pelo navegador.
+
+### Validação Antes do Deploy
+
+```bash
+npm run lint       # 0 erros e 0 avisos
+npm run typecheck  # sem erros de tipo
+npm test           # 13 arquivos / 105 testes
+npm run build      # gera dist/
+
+# Confirmar que o bundle usa a API atual
+grep -c countries.dev dist/assets/*.js
+```
+
+Após o deploy, validações aplicadas:
+- Lista de países carregada na página inicial (250 países).
+- Console do navegador sem erro de CORS.
+- Filtro por região retornando resultados para todas as opções exibidas.
+- Tema claro/escuro, favoritos e modal de detalhes funcionando em mobile e desktop.
 
 ---
 
@@ -283,6 +353,26 @@ Nenhuma variável de ambiente necessária. A API é pública e acessada diretame
 
 ---
 
+## 📝 Registro de Alterações
+
+### 29/09/2026 — Correção do contrato de dados após descontinuidade da API v3.1
+
+- Identificada a API Countries.dev como alternativa ao REST Countries v3.1, que foi descontinuado e passou a retornar erro de CORS no deploy.
+- Ajustado o mapeamento dos dados para o formato achatado da API (name como texto, alpha3Code, languages[] e currencies[]).
+- Removidos valores fixos nos campos `unMember`, `landlocked` e `continents`, que exibiam informação incorreta para todos os países.
+- Ajustada a tela de detalhes para exibir apenas os campos informados pela API.
+- Ajustada a exibição de área: mostra "Não informada" quando a API não retorna o valor, em vez de "0 km²".
+- Normalizadas as regiões `Polar` e `Antarctic Ocean` para `Antarctic`, garantindo que todos os países sejam selecionáveis no filtro.
+- Ajustados os campos `nativeName` (texto, conforme a API) e `ccn3` (usando `numericCode`).
+- Tratada a resposta com objetos vazios retornada quando o parâmetro `fields` é inválido: a aplicação exibe erro e libera a nova tentativa.
+- Adicionado limite de 15 segundos na requisição, evitando carregamento infinito.
+- Corrigido o rodapé, que ainda apontava para a API descontinuada.
+- Adicionados testes de contrato de mapeamento, de falhas de comunicação, do modal de detalhes, dos estados de carregamento e erro, do hook de dados e de integração (52 → 105 testes).
+- Configurado o ESLint em flat config, com validação de código em 0 erros e 0 avisos.
+- Validado o fluxo completo com lint, typecheck, testes, build e verificação dos dados da API.
+
+---
+
 ## 📄 Licença
 
-Projeto desenvolvido para fins educacionais. API REST Countries é de uso livre.
+Projeto desenvolvido para fins educacionais. Dados fornecidos pela Countries.dev.
