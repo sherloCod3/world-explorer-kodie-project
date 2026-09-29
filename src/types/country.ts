@@ -44,7 +44,8 @@ export interface Country {
   name: {
     common: string;
     official: string;
-    nativeName?: Record<string, { official: string; common: string }>;
+    /** A API countries.dev retorna o nome nativo como texto ("Brasil"). */
+    nativeName?: string;
   };
   cca3: string;
   ccn3?: string;
@@ -61,8 +62,10 @@ export interface Country {
   borders?: string[];
   independent?: boolean;
   unMember?: boolean;
-  landlocked: boolean;
-  continents: string[];
+  /** Ausente quando a API não informa o campo (a interface não o exibe). */
+  landlocked?: boolean;
+  /** Ausente quando a API não informa o campo (a interface não o exibe). */
+  continents?: string[];
   timezones: string[];
   startOfWeek?: string;
   flag: string;

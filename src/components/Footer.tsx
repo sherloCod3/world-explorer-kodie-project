@@ -20,12 +20,12 @@ export function Footer() {
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
             Dados fornecidos por{' '}
             <a
-              href="https://restcountries.com"
+              href="https://countries.dev"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
-              REST Countries API
+              Countries.dev API
             </a>
           </p>
 

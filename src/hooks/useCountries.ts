@@ -26,33 +26,64 @@ interface UseCountriesReturn {
 
 export function useCountries(): UseCountriesReturn {
   const [countries, setCountries] = useState<Country[]>([]);
-  const [state, setState] = useState<RequestState>('idle');
+  // O carregamento começa no mount: o estado inicial já é "loading",
+  // evitando um render vazio antes do primeiro efeito.
+  const [state, setState] = useState<RequestState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [sortBy, setSortBy] = useState('name-asc');
 
   /**
-   * Busca inicial dos dados. Executada uma vez no mount.
-   * Tratamento de erro: exibe mensagem amigável ao usuário.
+   * Aplica o resultado da busca bem-sucedida no estado da aplicação.
    */
-  const loadData = useCallback(async () => {
-    setState('loading');
+  const applySuccess = useCallback((data: Country[]) => {
+    setCountries(data);
     setError(null);
-    try {
-      const data = await fetchAllCountries();
-      setCountries(data);
-      setState('success');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(message);
-      setState('error');
-    }
+    setState('success');
   }, []);
 
+  /**
+   * Aplica a falha da busca no estado da aplicação, com mensagem amigável.
+   */
+  const applyFailure = useCallback((err: unknown) => {
+    const message = err instanceof Error ? err.message : 'Erro desconhecido';
+    setError(message);
+    setState('error');
+  }, []);
+
+  /**
+   * Carga inicial dos dados.
+   * O estado é atualizado apenas dentro dos callbacks da promise, evitando
+   * renders em cascata a partir do efeito. O retorno da função cancela as
+   * atualizações caso o componente seja desmontado durante a requisição.
+   */
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+
+    fetchAllCountries().then(
+      (data) => {
+        if (active) applySuccess(data);
+      },
+      (err: unknown) => {
+        if (active) applyFailure(err);
+      },
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [applySuccess, applyFailure]);
+
+  /**
+   * Recarrega os dados exibindo o estado de carregamento.
+   * Chamada pelo botão "Tentar novamente" (evento do usuário).
+   */
+  const refetch = useCallback(() => {
+    setState('loading');
+    setError(null);
+    fetchAllCountries().then(applySuccess, applyFailure);
+  }, [applySuccess, applyFailure]);
 
   /**
    * Aplica filtros e ordenação sobre os dados brutos.
@@ -117,6 +148,6 @@ export function useCountries(): UseCountriesReturn {
     setSearchQuery,
     setSelectedRegion,
     setSortBy,
-    refetch: loadData,
+    refetch,
   };
 }

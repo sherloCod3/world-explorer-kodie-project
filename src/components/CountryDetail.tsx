@@ -1,17 +1,22 @@
 /**
  * Componente CountryDetail — modal com informações detalhadas do país.
- * Exibe: bandeira, nome oficial, capital, região, população, área,
- * idiomas, moedas, países vizinhos, e informações adicionais.
+ * Exibe: bandeira, nome, capital, região, população, área, idiomas, moedas
+ * e países vizinhos.
  *
  * Interações:
  * - Fechar: botão X ou clique fora do modal
  * - Favoritar: botão de coração
  * - Navegação: clique em país vizinho carrega seus dados
  *
- * Acessibilidade: role="dialog", focus trap, ESC para fechar.
+ * Acessibilidade: role="dialog", aria-modal, foco no botão de fechar ao abrir,
+ * ESC para fechar e bloqueio do scroll do body enquanto está aberto.
+ *
+ * Exibição condicional: campos que a API não fornece (continents, unMember,
+ * landlocked) e listas vazias não são renderizados, evitando exibir informação
+ * incorreta ao usuário.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   X,
   Heart,
@@ -57,6 +62,9 @@ export function CountryDetail({
   onSelectNeighbor,
   neighbors,
 }: CountryDetailProps) {
+  /** Referência do botão de fechar, usada para posicionar o foco ao abrir. */
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   /**
    * Fecha modal ao pressionar ESC.
    */
@@ -75,6 +83,14 @@ export function CountryDetail({
       document.body.style.overflow = '';
     };
   }, [handleKeyDown]);
+
+  /**
+   * Move o foco para o botão de fechar ao abrir o modal,
+   * permitindo fechar com o teclado sem usar o mouse.
+   */
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
 
   const languages = Object.values(country.languages);
   const currencies = Object.values(country.currencies);
@@ -115,6 +131,7 @@ export function CountryDetail({
               />
             </button>
             <button
+              ref={closeButtonRef}
               onClick={onClose}
               className="p-2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:scale-110 transition-transform"
               aria-label="Fechar detalhes"
@@ -128,7 +145,10 @@ export function CountryDetail({
             <h2 className="text-2xl sm:text-3xl font-bold text-white">
               {country.name.common}
             </h2>
-            <p className="text-white/80 text-sm mt-1">{country.name.official}</p>
+            {/* A API não fornece nome oficial: a linha é omitida quando é igual ao comum. */}
+            {country.name.official && country.name.official !== country.name.common && (
+              <p className="text-white/80 text-sm mt-1">{country.name.official}</p>
+            )}
           </div>
         </div>
 
@@ -154,59 +174,70 @@ export function CountryDetail({
             <InfoItem
               icon={<Mountain className="w-4 h-4" />}
               label="Área"
-              value={formatArea(country.area)}
+              value={country.area > 0 ? formatArea(country.area) : 'Não informada'}
             />
-            <InfoItem
-              icon={<Compass className="w-4 h-4" />}
-              label="Continente"
-              value={country.continents?.join(', ') || 'N/A'}
-            />
-            <InfoItem
-              icon={<Building2 className="w-4 h-4" />}
-              label="Membro da ONU"
-              value={country.unMember ? 'Sim' : 'Não'}
-            />
+            {/* Continente: exibido apenas quando a API informa o campo. */}
+            {country.continents?.length ? (
+              <InfoItem
+                icon={<Compass className="w-4 h-4" />}
+                label="Continente"
+                value={country.continents.join(', ')}
+              />
+            ) : null}
+            {/* Membro da ONU: exibido apenas quando a API informa o campo. */}
+            {typeof country.unMember === 'boolean' && (
+              <InfoItem
+                icon={<Building2 className="w-4 h-4" />}
+                label="Membro da ONU"
+                value={country.unMember ? 'Sim' : 'Não'}
+              />
+            )}
           </div>
 
-          {/* Idiomas */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Languages className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                Idiomas
-              </h3>
+          {/* Idiomas — oculto quando a lista está vazia. */}
+          {languages.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Languages className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                  Idiomas
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {languages.map((lang) => (
+                  <span
+                    key={lang}
+                    className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
+                  >
+                    {lang}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {languages.map((lang) => (
-                <span
-                  key={lang}
-                  className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
-                >
-                  {lang}
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
 
-          {/* Moedas */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Coins className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                Moedas
-              </h3>
+          {/* Moedas — oculto quando a lista está vazia. */}
+          {currencies.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                  Moedas
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {currencies.map((currency) => (
+                  <span
+                    key={currency.name}
+                    className="px-2.5 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium"
+                  >
+                    {currency.name}
+                    {currency.symbol ? ` (${currency.symbol})` : ''}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {currencies.map((currency) => (
-                <span
-                  key={currency.name}
-                  className="px-2.5 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium"
-                >
-                  {currency.name} ({currency.symbol})
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Países vizinhos */}
           {neighbors.length > 0 && (
@@ -240,8 +271,13 @@ export function CountryDetail({
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-gray-500 dark:text-gray-400">
               <span>Código: {country.cca3}</span>
-              <span>Sem litoral: {country.landlocked ? 'Sim' : 'Não'}</span>
-              <span>Independente: {country.independent ? 'Sim' : 'Não'}</span>
+              {/* Campos exibidos apenas quando a API informa o valor. */}
+              {typeof country.landlocked === 'boolean' && (
+                <span>Sem litoral: {country.landlocked ? 'Sim' : 'Não'}</span>
+              )}
+              {typeof country.independent === 'boolean' && (
+                <span>Independente: {country.independent ? 'Sim' : 'Não'}</span>
+              )}
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@
  */
 
 import { Filter, SortAsc } from 'lucide-react';
+import { REGIONS } from '../utils/regions';
 
 interface FilterBarProps {
   selectedRegion: string;
@@ -15,16 +16,6 @@ interface FilterBarProps {
   onSortChange: (sort: string) => void;
   totalResults: number;
 }
-
-const REGIONS = [
-  'All',
-  'Africa',
-  'Americas',
-  'Asia',
-  'Europe',
-  'Oceania',
-  'Antarctic',
-];
 
 const SORT_OPTIONS = [
   { value: 'name-asc', label: 'Nome (A-Z)' },
