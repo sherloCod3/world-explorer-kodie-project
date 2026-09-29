@@ -1,6 +1,7 @@
 {
   "name": "world-explorer-kodie-project",
-  "private": true,
+  "version": "1.0.0",
+  "description": "World Explorer — SPA desenvolvida com React 18, Vite e TypeScript que consome a API REST Countries. Implementa busca em tempo real, filtros por região, ordenação dinâmica, sistema de favoritos com persistência local e interface responsiva com tema claro/escuro.",
   "type": "module",
   "scripts": {
     "dev": "vite",
