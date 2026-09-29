@@ -23,8 +23,8 @@ describe('API - fetchAllCountries', () => {
 
   it('retornou lista de países com sucesso', async () => {
     const mockData = [
-      { name: { common: 'Brasil' }, cca3: 'BRA' },
-      { name: { common: 'Argentina' }, cca3: 'ARG' },
+      { name: 'Brasil', alpha3Code: 'BRA', region: 'Americas', population: 210000000 },
+      { name: 'Argentina', alpha3Code: 'ARG', region: 'Americas', population: 44000000 },
     ];
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -32,8 +32,9 @@ describe('API - fetchAllCountries', () => {
     });
 
     const result = await fetchAllCountries();
-    expect(result).toEqual(mockData);
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(result).toHaveLength(2);
+    expect(result[0].name.common).toBe('Brasil');
+    expect(result[0].cca3).toBe('BRA');
   });
 
   it('lançou erro quando resposta não foi OK', async () => {
@@ -52,14 +53,16 @@ describe('API - searchCountries', () => {
   });
 
   it('retornou resultados da busca', async () => {
-    const mockData = [{ name: { common: 'Brasil' }, cca3: 'BRA' }];
+    const mockData = [{ name: 'Brasil', alpha3Code: 'BRA', region: 'Americas', population: 210000000 }];
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockData),
     });
 
     const result = await searchCountries('Brasil');
-    expect(result).toEqual(mockData);
+    expect(result).toHaveLength(1);
+    expect(result[0].name.common).toBe('Brasil');
+    expect(result[0].cca3).toBe('BRA');
   });
 
   it('retornou array vazio quando país não encontrado (404)', async () => {
@@ -88,14 +91,15 @@ describe('API - fetchCountryByCode', () => {
   });
 
   it('retornou país pelo código', async () => {
-    const mockData = { name: { common: 'Brasil' }, cca3: 'BRA' };
+    const mockData = [{ name: 'Brasil', alpha3Code: 'BRA', region: 'Americas', population: 210000000 }];
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockData),
     });
 
     const result = await fetchCountryByCode('BRA');
-    expect(result).toEqual(mockData);
+    expect(result.name.common).toBe('Brasil');
+    expect(result.cca3).toBe('BRA');
   });
 
   it('lançou erro quando país não encontrado', async () => {

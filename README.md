@@ -41,21 +41,22 @@ Aplicação web responsiva que:
 
 ## 🌐 API Utilizada
 
-**REST Countries API v3.1** — https://restcountries.com
+**Countries.dev API** — https://countries.dev
 
-| Critério | Avaliação |
+|| Critério | Avaliação |
 |----------|-----------|
-| Autenticação | Não requer API key |
-| Dados disponíveis | Nome, bandeira, capital, região, população, área, idiomas, moedas, fronteiras |
-| Rate limit | Sem limitação explícita |
-| Formato | JSON |
-| CORS | Habilitado |
+|| Autenticação | Não requer API key |
+|| Dados disponíveis | Nome, bandeira, capital, região, população, área, idiomas, moedas, fronteiras, coordenadas |
+|| Rate limit | Limite generoso, uso razoável |
+|| Formato | JSON |
+|| CORS | Habilitado (`Access-Control-Allow-Origin: *`) |
 
 **Por que esta API:**
 - Gratuita e sem configuração complexa
-- Dados ricos e bem estruturados
-- Resposta rápida e confiável
-- Ideal para demonstrar consumo de API, filtros e interatividade
+- Sem necessidade de API key
+- CORS habilitado para chamadas diretas do navegador
+- Substituta direta do antigo REST Countries v3.1 (agora descontinuado)
+- Dados bem estruturados e resposta rápida
 
 ---
 
@@ -208,6 +209,7 @@ npx vitest run --coverage
 - Não requer API key (simplifica desenvolvimento e deploy)
 - Dados estruturados e ricos para demonstrar filtros e interações
 - Resposta rápida sem rate limiting
+- Substituta direta do antigo REST Countries v3.1 (agora descontinuado)
 
 ### Por que localStorage para favoritos?
 - Persistência entre sessões sem backend
