@@ -48,7 +48,7 @@ Aplicação web responsiva que:
 |----------|-----------|
 | Autenticação | Não requer API key |
 | Dados disponíveis | Nome, bandeira, capital, região, população, área, idiomas, moedas, fronteiras, coordenadas |
-| Endpoints usados | `/countries` (lista completa), `/name/{nome}` e `/alpha/{código}` |
+| Endpoints usados | `/countries` (lista completa — única chamada em produção; busca e detalhes operam sobre esses dados). `/name/{nome}` e `/alpha/{código}` também estão implementados e testados em `src/utils/api.ts` |
 | Volume retornado | 250 países em uma única chamada, sem paginação |
 | Cache | Cabeçalhos `Cache-Control` com CDN (`s-maxage`), reduzindo chamadas repetidas |
 | Formato | JSON |
@@ -69,7 +69,7 @@ Aplicação web responsiva que:
 
 ### Busca e Filtros
 - Busca por nome do país (tempo real, case-insensitive)
-- Filtro por região (Africa, Americas, Asia, Europe, Oceania)
+- Filtro por região (Africa, Americas, Asia, Europe, Oceania, Antarctic)
 - Ordenação por nome, população ou área (crescente/decrescente)
 - Contador de resultados atualizado dinamicamente
 
@@ -370,6 +370,16 @@ Após o deploy, validações aplicadas:
 - Adicionados testes de contrato de mapeamento, de falhas de comunicação, do modal de detalhes, dos estados de carregamento e erro, do hook de dados e de integração (52 → 105 testes).
 - Configurado o ESLint em flat config, com validação de código em 0 erros e 0 avisos.
 - Validado o fluxo completo com lint, typecheck, testes, build e verificação dos dados da API.
+
+### 29/09/2026 — Higiene de dependências e correções de documentação
+
+- Removidas 12 dependências sem nenhuma referência no código (`uuid`, `react-router-dom`, `@supabase/supabase-js`, `framer-motion`, `recharts`, `date-fns`, `@dnd-kit/*`, `canvas-confetti` e respectivos `@types`), o que eliminou as 3 vulnerabilidades moderadas do `npm audit` — o projeto ficou com 0 vulnerabilidades.
+- Movidas as ferramentas de teste (`vitest`, `jsdom` e `@testing-library`) para `devDependencies`, pois não são executadas em produção.
+- Removido import não utilizado de React em `src/main.tsx` e padronizadas as aspas do arquivo com o padrão do projeto.
+- Corrigidos a descrição do `package.json` e os comentários de `src/types/country.ts`, que ainda citavam a API REST Countries descontinuada.
+- Corrigido o README: a linha de endpoints agora informa que apenas `/countries` é chamado em produção (busca e detalhes operam sobre os dados carregados) e a lista de regiões do filtro inclui `Antarctic`.
+- Publicada nova versão em produção: o build remoto confirmou a árvore de dependências podada, e o bundle verificado segue sem menções à API descontinuada.
+- Validado o fluxo completo com lint, typecheck, 105 testes, build e `npm audit` (0 vulnerabilidades).
 
 ---
 
